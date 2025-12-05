@@ -3,78 +3,97 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Путеводитель по университетам Казахстана</title>
+    <title>Платформа Выбора ВУЗов | Nurym AI</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏛️</text></svg>">
 </head>
 <body>
 
-    <div class="language-switcher">
-        <button id="lang-toggle" onclick="toggleLanguage()">🇰🇿 Қазақша / Русский 🇷🇺</button>
-    </div>
-
     <header>
-        <h1 id="app-title">Путеводитель по университетам Казахстана</h1>
+        <h1>🏛️ Выбери свой университет!</h1>
     </header>
 
-    <div class="main-container">
-
-        <aside class="sidebar">
-            <h2 id="filter-heading">Фильтры и поиск</h2>
-            <div class="filter-group">
-                <label for="city-filter" id="city-label">Город:</label>
-                <select id="city-filter"></select>
+    <main>
+        <section id="nurym-assistant">
+            <h2>🤖 Nurym: Твой AI-консультант</h2>
+            <div id="quiz-container">
+                <p>Начните опрос, чтобы получить рекомендацию профессии и ВУЗа.</p>
+                <button onclick="startQuiz()">Начать опрос</button>
             </div>
-            <div class="filter-group">
-                <label for="subject1" id="subject1-label">Профильный предмет 1:</label>
-                <select id="subject1"></select>
-            </div>
-            <div class="filter-group">
-                <label for="subject2" id="subject2-label">Профильный предмет 2:</label>
-                <select id="subject2"></select>
-            </div>
-            <button id="reset-filters-button" onclick="resetFilters()">Сбросить фильтры</button>
+            <div id="quiz-results" style="display:none;"></div>
+        </section>
 
-            <hr>
+        <hr>
 
-            <h2 id="comparison-heading">Сравнение ВУЗов</h2>
-            <div id="comparison-list">
-                </div>
-            <button id="compare-button" onclick="showComparisonModal()" disabled>Сравнить</button>
+        <section id="university-list-section">
+            <h2>🎓 Каталог Университетов</h2>
+            <div class="filters">
+                <label for="city-filter">Город:</label>
+                <select id="city-filter">
+                    <option value="">(Все города)</option>
+                    <option value="Алматы">Алматы</option>
+                    <option value="Нур-Султан (Астана)">Астана (Нур-Султан)</option>
+                    <option value="Караганда">Караганда</option>
+                </select>
+                
+                <label for="subject1">Предмет 1 (ЕНТ):</label>
+                <select id="subject1">
+                    <option value="">(Не выбрано)</option>
+                    <option value="Математика">Математика</option>
+                    <option value="Физика">Физика</option>
+                    <option value="Биология">Биология</option>
+                    <option value="История мира">История мира</option>
+                    <option value="География">География</option>
+                </select>
+
+                <label for="subject2">Предмет 2 (ЕНТ):</label>
+                <select id="subject2">
+                    <option value="">(Не выбрано)</option>
+                    <option value="Физика">Физика</option>
+                    <option value="Информатика">Информатика</option>
+                    <option value="Химия">Химия</option>
+                    <option value="Иностранный язык">Иностранный язык</option>
+                    <option value="География">География</option>
+                </select>
+
+                <button onclick="filterUniversities()">Применить фильтр</button>
+            </div>
             
-            <hr>
+            <div id="university-list">
+                </div>
+        </section>
 
-            <h2 id="chat-heading">🤖 AI-Консультант (Поступление)</h2>
-            <div id="chat-container">
-                <div id="chat-messages">
+        <hr>
+
+        <section id="comparison-section" style="display:none;">
+            <h2>📊 Сравнение ВУЗов</h2>
+            <div id="comparison-table">
+                </div>
+        </section>
+
+    </main>
+
+    <div id="details-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeModal()">&times;</span>
+            <div id="modal-body">
+                <h2>[Название ВУЗа]</h2>
+                
+                <div class="uni-sections">
+                    <div id="uni-mission"></div>
+                    <div id="uni-programs"></div>
+                    <div id="uni-admission"></div>
+                    <div id="uni-international"></div>
+                    <div id="uni-tour-section">
+                        <h4>🗺️ 3D-Тур / Видео-обзор кампуса</h4>
+                        <iframe id="uni-tour-iframe" width="100%" height="400" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
                     </div>
-                <div class="chat-input-controls">
-                    <input type="text" id="chat-input" placeholder="Спросите о ВУЗах, грантах или ЕНТ...">
-                    <button id="voice-toggle" onclick="toggleRecording()">🎤 Начать запись</button>
-                    <button id="chat-send-button" onclick="sendMessage()">Отправить</button>
                 </div>
             </div>
-        </aside>
-
-        <section id="university-list-container" class="university-list"></section>
-        
-    </div>
-
-    <div id="modal-details" class="modal">
-        <div class="modal-content">
-            <span class="close-button" onclick="closeModal('modal-details')">&times;</span>
-            <div id="modal-details-body">
-                </div>
-        </div>
-    </div>
-
-    <div id="modal-comparison" class="modal">
-        <div class="modal-content large-modal">
-            <span class="close-button" onclick="closeModal('modal-comparison')">&times;</span>
-            <div id="modal-comparison-body">
-                </div>
         </div>
     </div>
 
     <script src="script.js"></script>
 </body>
 </html>
+
