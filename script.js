@@ -1,5 +1,5 @@
 // =================================================================
-// ЧАСТЬ 1: БАЗА ДАННЫХ (ОБНОВЛЕННЫЙ СПИСОК + AITU, IITU)
+// ЧАСТЬ 1: БАЗА ДАННЫХ (ОКОНЧАТЕЛЬНЫЙ СПИСОК)
 // =================================================================
 const universityData = [
     {
@@ -79,7 +79,6 @@ const universityData = [
         }
     },
     {
-        // Satbayev University (бывш. КазНТУ/КазНИТУ)
         "id": "satbayev_uni",
         "name": "Satbayev University (бывш. КазНТУ/КазНИТУ)",
         "city": "Алматы",
@@ -156,7 +155,6 @@ const universityData = [
         }
     },
     {
-        // КАР МЕД УНИВЕР (КарМУ - Карагандинский медицинский университет)
         "id": "kargmu",
         "name": "Карагандинский медицинский университет (КарМУ)",
         "city": "Караганда",
@@ -271,7 +269,6 @@ const universityData = [
         }
     },
     {
-        // КарУ им. Е. А. Букетова
         "id": "karu",
         "name": "Карагандинский университет им. Е. А. Букетова (КарУ)",
         "city": "Караганда",
@@ -310,7 +307,6 @@ const universityData = [
         }
     },
     {
-        // КарТУ (Технический университет Караганды)
         "id": "kartu",
         "name": "Карагандинский технический университет (КарТУ)",
         "city": "Караганда",
@@ -349,7 +345,6 @@ const universityData = [
         }
     },
     {
-        // Astana IT University (AITU) - Добавлен
         "id": "aitu",
         "name": "Astana IT University (AITU)",
         "city": "Нур-Султан (Астана)",
@@ -388,7 +383,6 @@ const universityData = [
         }
     },
     {
-        // Международный Университет Информационных Технологий (МУИТ / IITU) - Добавлен
         "id": "iitu",
         "name": "Международный Университет Информационных Технологий (МУИТ / IITU)",
         "city": "Алматы",
@@ -428,416 +422,569 @@ const universityData = [
     }
 ];
 
-
 // =================================================================
-// ЧАСТЬ 2: ЛОГИКА ПЛАТФОРМЫ (РЕНДЕРИНГ, ФИЛЬТРАЦИЯ, СРАВНЕНИЕ)
+// ЧАСТЬ 2: ЛОГИКА ПЕРЕВОДА И ФИЛЬТРАЦИИ
 // =================================================================
-let comparisonList = [];
 
-// --- Функции рендеринга и управления карточками ---
-function renderUniversityCard(uni) {
-    const isCompared = comparisonList.includes(uni.id);
-    const compareButtonText = isCompared ? '✔ Сравнить (Добавлено)' : '+ Добавить к сравнению';
-
-    const card = document.createElement('div');
-    card.className = 'uni-card';
-    card.setAttribute('data-uni-id', uni.id);
-
-    card.innerHTML = `
-        <img src="${uni.image_url}" alt="${uni.name}">
-        <div class="uni-card-content">
-            <h3>${uni.name}</h3>
-            <p><strong>Город:</strong> ${uni.city}</p>
-            <button onclick="showDetails('${uni.id}')">Детали ВУЗа</button>
-            <button class="compare-btn" data-id="${uni.id}" onclick="toggleComparison('${uni.id}')" style="${isCompared ? 'background-color: var(--primary-light); border: 1px solid #0056b3;' : ''}">${compareButtonText}</button>
-        </div>
-    `;
-    return card;
-}
-
-function displayUniversities(universities) {
-    const listContainer = document.getElementById('university-list');
-    listContainer.innerHTML = '';
-
-    if (universities.length === 0) {
-        listContainer.innerHTML = '<p>К сожалению, по вашим критериям университеты не найдены. Попробуйте изменить фильтры.</p>';
-        return;
-    }
-
-    universities.forEach(uni => {
-        listContainer.appendChild(renderUniversityCard(uni));
-    });
-}
-
-// --- Логика фильтрации ---
-function filterUniversities() {
-    const city = document.getElementById('city-filter').value;
-    const subj1 = document.getElementById('subject1').value;
-    const subj2 = document.getElementById('subject2').value;
-
-    const filtered = universityData.filter(uni => {
-        const cityMatch = !city || uni.city === city;
-        
-        let subjectsMatch = true;
-        if (subj1 || subj2) {
-            // Проверяем, есть ли хотя бы одна программа, где оба выбранных предмета присутствуют
-            const requiredPrograms = uni.sections.programs.list;
-            
-            subjectsMatch = requiredPrograms.some(prog => {
-                const required = prog.subjects_required;
-                let matchCount = 0;
-                
-                if (subj1 && required.includes(subj1)) matchCount++;
-                if (subj2 && required.includes(subj2)) matchCount++;
-                
-                // Если выбран один предмет, достаточно одного совпадения. 
-                // Если выбраны два, нужно два совпадения.
-                if (subj1 && subj2) return matchCount === 2;
-                if (subj1 || subj2) return matchCount >= 1;
-                return true; // Если ни один предмет не выбран, пропускаем фильтр
-            });
-        }
-        
-        return cityMatch && subjectsMatch;
-    });
-
-    displayUniversities(filtered);
-}
-
-// --- Логика модального окна (Детализация) ---
-function showDetails(uniId) {
-    const uni = universityData.find(u => u.id === uniId);
-    if (!uni) return;
-
-    const modalBody = document.getElementById('modal-body');
-    let contentHTML = `
-        <h2>${uni.name} (${uni.city})</h2>
-        <div class="uni-sections">
-    `;
-
-    // Добавление данных из каждой секции
-    for (const key in uni.sections) {
-        const section = uni.sections[key];
-        contentHTML += `<h4>${section.title}</h4>`;
-        
-        if (section.mission) contentHTML += `<p><strong>Миссия:</strong> ${section.mission}</p>`;
-        if (section.history_excerpt) contentHTML += `<p><strong>История:</strong> ${section.history_excerpt}</p>`;
-        
-        if (section.achievements && section.achievements.length) {
-            contentHTML += '<strong>Достижения:</strong><ul>';
-            section.achievements.forEach(item => contentHTML += `<li>${item}</li>`);
-            contentHTML += '</ul>';
-        }
-
-        if (section.list && section.list.length) {
-            contentHTML += '<strong>Программы:</strong><ul>';
-            section.list.forEach(item => contentHTML += `<li>${item.program_name} (ЕНТ: ${item.subjects_required.join(' и ')})</li>`);
-            contentHTML += '</ul>';
-        }
-
-        if (section.requirements) contentHTML += `<p><strong>Требования:</strong> ${section.requirements}</p>`;
-        
-        if (section.link) {
-            contentHTML += `<p><a href="${section.link}" target="_blank">Посмотреть 3D-тур на YouTube</a></p>`;
-            contentHTML += `<iframe width="100%" height="400" src="${section.link}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
-        }
-    }
-
-    contentHTML += '</div>';
-    modalBody.innerHTML = contentHTML;
-    document.getElementById('details-modal').style.display = 'block';
-}
-
-function closeModal() {
-    document.getElementById('details-modal').style.display = 'none';
-}
-
-// Закрытие модального окна по клику вне его
-window.onclick = function(event) {
-    const modal = document.getElementById('details-modal');
-    if (event.target === modal) {
-        modal.style.display = "none";
-    }
-}
-
-// --- Логика сравнения ---
-function toggleComparison(uniId) {
-    const index = comparisonList.indexOf(uniId);
-    if (index === -1) {
-        if (comparisonList.length >= 4) {
-            alert('Вы можете сравнить не более 4 университетов.');
-            return;
-        }
-        comparisonList.push(uniId);
-    } else {
-        comparisonList.splice(index, 1);
-    }
-
-    // Перерисовываем карточки и таблицу
-    filterUniversities(); // Обновляет кнопки на карточках
-    renderComparisonTable();
-}
-
-function clearComparison() {
-    comparisonList = [];
-    filterUniversities();
-    renderComparisonTable();
-}
-
-function renderComparisonTable() {
-    const compSection = document.getElementById('comparison-section');
-    const tableContainer = document.getElementById('comparison-table');
+const translations = {
+    // Общие элементы интерфейса
+    "app_title": { "ru": "Путеводитель по университетам Казахстана", "kz": "Қазақстан университеттерінің гиді" },
+    "filter_heading": { "ru": "Фильтры и поиск", "kz": "Сүзгілер мен іздеу" },
+    "city_filter_label": { "ru": "Город:", "kz": "Қала:" },
+    "subject1_label": { "ru": "Профильный предмет 1:", "kz": "Бейіндік пән 1:" },
+    "subject2_label": { "ru": "Профильный предмет 2:", "kz": "Бейіндік пән 2:" },
+    "default_option_all_cities": { "ru": "(Все города)", "kz": "(Барлық қалалар)" },
+    "default_option_select_subject": { "ru": "(Выберите предмет)", "kz": "(Пәнді таңдаңыз)" },
+    "chat_heading": { "ru": "🤖 AI-Консультант (Поступление)", "kz": "🤖 AI-Кеңесші (Түсу)" },
+    "chat_input_placeholder": { "ru": "Спросите о ВУЗах, грантах или ЕНТ...", "kz": "ЖОО, гранттар немесе ҰБТ туралы сұраңыз..." },
+    "chat_send_button": { "ru": "Отправить", "kz": "Жіберу" },
+    "comparison_heading": { "ru": "Сравнение ВУЗов", "kz": "Жоғары оқу орындарын салыстыру" },
+    "compare_button_text": { "ru": "Сравнить", "kz": "Салыстыру" },
+    "filter_clear_button": { "ru": "Сбросить фильтры", "kz": "Сүзгілерді тастау" },
     
-    if (comparisonList.length < 2) {
-        compSection.style.display = 'none';
-        return;
-    }
-
-    compSection.style.display = 'block';
+    // Элементы карточки университета
+    "detail_button": { "ru": "Подробнее", "kz": "Толығырақ" },
+    "compare_add_button": { "ru": "Добавить к сравнению", "kz": "Салыстыруға қосу" },
+    "compare_remove_button": { "ru": "Убрать из сравнения", "kz": "Салыстырудан алып тастау" },
+    "no_universities_found": { "ru": "Университеты не найдены. Попробуйте сбросить фильтры.", "kz": "Университеттер табылмады. Сүзгілерді тастап көріңіз." },
     
-    const unisToCompare = universityData.filter(uni => comparisonList.includes(uni.id));
-
-    let tableHTML = `<table class="comparison-table"><thead><tr><th>Критерий</th>`;
-    unisToCompare.forEach(uni => {
-        tableHTML += `<th>${uni.name}</th>`;
-    });
-    tableHTML += `</tr></thead><tbody>`;
-
-    const criteria = [
-        { name: 'Город', getValue: uni => uni.city },
-        { name: 'Миссия/Фокус', getValue: uni => uni.sections.mission_history.mission },
-        { name: 'Год основания', getValue: uni => uni.sections.mission_history.history_excerpt.split('. ')[0].replace('Основан в ', '') },
-        { name: 'ТОП достижения', getValue: uni => uni.sections.mission_history.achievements.join(', ') },
-        { name: 'Примеры программ (ЕНТ)', getValue: uni => uni.sections.programs.list.map(p => `${p.program_name} (${p.subjects_required.join(' и ')})`).join('<br>') },
-        { name: 'Требования к ЕНТ', getValue: uni => uni.sections.admission.requirements },
-        { name: 'Обменные программы', getValue: uni => uni.sections.international.exchange_programs }
-    ];
-
-    criteria.forEach(crit => {
-        tableHTML += `<tr><th>${crit.name}</th>`;
-        unisToCompare.forEach(uni => {
-            tableHTML += `<td>${crit.getValue(uni)}</td>`;
-        });
-        tableHTML += `</tr>`;
-    });
-
-    tableHTML += `</tbody></table>`;
-    tableContainer.innerHTML = tableHTML;
-}
-
-// --- Логика Опроса (Quiz) ---
-const quizQuestions = [
-    { text: "Что для тебя важнее всего в будущей работе?", options: ["Высокая зарплата", "Помощь людям", "Творческая свобода", "Стабильность и структура"] },
-    { text: "Какой предмет тебе дается легче всего и нравится больше?", options: ["Математика и Физика", "Биология и Химия", "История и Языки", "Информатика и Логика"] },
-    { text: "Какая среда обучения тебя больше привлекает?", options: ["Строгая, исследовательская, международная", "Практическая, ориентированная на индустрию", "Гуманитарная, с упором на культуру и общение", "Медицинская, с упором на клинику и практику"] }
-];
-let currentQuestionIndex = 0;
-let quizAnswers = [];
-
-function startQuiz() {
-    currentQuestionIndex = 0;
-    quizAnswers = [];
-    document.getElementById('quiz-results').style.display = 'none';
-    showNextQuestion();
-}
-
-function showNextQuestion() {
-    const quizContainer = document.getElementById('quiz-container');
-    if (currentQuestionIndex >= quizQuestions.length) {
-        showQuizResults();
-        return;
-    }
-
-    const q = quizQuestions[currentQuestionIndex];
-    let qHtml = `<p><strong>Вопрос ${currentQuestionIndex + 1}:</strong> ${q.text}</p><div style="display: flex; flex-direction: column; gap: 10px;">`;
+    // Голосовой помощник
+    "voice_button_start": { "ru": "🎤 Начать запись", "kz": "🎤 Жазуды бастау" },
+    "voice_button_stop": { "ru": "🛑 Закончить запись", "kz": "🛑 Жазуды аяқтау" },
+    "recording_status": { "ru": "🔴 Запись...", "kz": "🔴 Жазылуда..." },
+    "send_voice_message_ui": { "ru": "🎙️ Голосовое сообщение (Нажмите для воспроизведения)", "kz": "🎙️ Дауыстық хабарлама (Ойнату үшін басыңыз)" },
+    "ai_response_voice_ru": { "ru": "Спасибо за голосовое сообщение! Я могу обрабатывать только текстовые запросы. Пожалуйста, напишите свой вопрос, и я обязательно отвечу.", "kz": "Дауыстық хабарлама үшін рақмет! Мен тек мәтіндік сұрауларды өңдей аламын. Өтінемін, сұрағыңызды жазыңыз, мен міндетті түрде жауап беремін." },
     
-    q.options.forEach((option, index) => {
-        qHtml += `<button onclick="recordAnswer(${index})">${option}</button>`;
-    });
+    // Модальное окно сравнения
+    "comparison_modal_title": { "ru": "Сводная таблица сравнения", "kz": "Салыстырудың жиынтық кестесі" },
+    "table_header_name": { "ru": "ВУЗ", "kz": "ЖОО" },
+    "table_header_city": { "ru": "Город", "kz": "Қала" },
+    "table_header_mission": { "ru": "Миссия/История", "kz": "Миссия/Тарих" },
+    "table_header_programs": { "ru": "Программы (Примеры)", "kz": "Бағдарламалар (Мысалдар)" },
+    "table_header_requirements": { "ru": "Требования/ЕНТ", "kz": "Талаптар/ҰБТ" }
+};
 
-    qHtml += '</div>';
-    quizContainer.innerHTML = qHtml;
+let currentLang = 'ru'; 
+let comparedUniversities = [];
+
+/**
+ * Возвращает переведенный текст по ключу.
+ */
+function getTranslation(key) {
+    return translations[key] ? translations[key][currentLang] : key;
 }
 
-function recordAnswer(optionIndex) {
-    quizAnswers.push(optionIndex);
-    currentQuestionIndex++;
-    showNextQuestion();
-}
-
-function showQuizResults() {
-    const resultsContainer = document.getElementById('quiz-results');
-    const quizContainer = document.getElementById('quiz-container');
-    const totals = quizAnswers.reduce((acc, index) => {
-        acc[index] = (acc[index] || 0) + 1;
-        return acc;
-    }, {});
-
-    const maxIndex = Object.keys(totals).reduce((a, b) => totals[a] > totals[b] ? a : b);
-
-    let resultText = "<h3>⭐ Твои склонности (помощник Nurym)</h3>";
+/**
+ * Переключает язык интерфейса и обновляет все элементы.
+ */
+function toggleLanguage() {
+    currentLang = currentLang === 'ru' ? 'kz' : 'ru';
     
-    switch (parseInt(maxIndex)) {
-        case 0:
-        case 3:
-            resultText += "<p>Твои ответы указывают на склонность к **техническим, финансовым и управленческим** областям. Тебе важна структура и результат.</p>";
-            resultText += "<p><strong>Рекомендуемые предметы ЕНТ:</strong> Математика и Физика / Информатика.</p>";
-            resultText += "<p><strong>Рекомендуемые ВУЗы:</strong> КБТУ, Satbayev University, IITU, AlmaU.</p>";
-            break;
-        case 1:
-            resultText += "<p>Твои ответы говорят о сильном интересе к **медицине, биологии и естественным наукам**. Желание помогать людям очень важно!</p>";
-            resultText += "<p><strong>Рекомендуемые предметы ЕНТ:</strong> Биология и Химия.</p>";
-            resultText += "<p><strong>Рекомендуемые ВУЗы:</strong> КазНМУ, КМУ (Караганда), SMU.</p>";
-            break;
-        case 2:
-            resultText += "<p>Ты склонен к **гуманитарным наукам, языкам, праву и общению**. Тебе важна культурная среда и взаимодействие.</p>";
-            resultText += "<p><strong>Рекомендуемые предметы ЕНТ:</strong> История мира и Иностранный язык / География.</p>";
-            resultText += "<p><strong>Рекомендуемые ВУЗы:</strong> КазНУ, ЕНУ, KAZGUU, КазНПУ.</p>";
-            break;
-        default:
-            resultText += "<p>У тебя многогранные интересы! Попробуй использовать фильтры по предметам, которые тебе нравятся, чтобы увидеть все возможности.</p>";
-    }
+    const button = document.getElementById('lang-toggle');
+    button.textContent = currentLang === 'ru' ? '🇰🇿 Қазақша / Русский 🇷🇺' : '🇷🇺 Русский / Қазақша 🇰🇿';
 
-    resultsContainer.innerHTML = resultText;
-    resultsContainer.style.display = 'block';
-    quizContainer.innerHTML = '<p>Опрос завершен. Нажми кнопку, чтобы пройти его снова.</p><button onclick="startQuiz()">Пройти опрос заново</button>';
+    // Обновление статических заголовков и полей ввода
+    document.getElementById('app-title').textContent = getTranslation('app_title');
+    document.getElementById('filter-heading').textContent = getTranslation('filter_heading');
+    document.getElementById('city-label').textContent = getTranslation('city_filter_label');
+    document.getElementById('subject1-label').textContent = getTranslation('subject1_label');
+    document.getElementById('subject2-label').textContent = getTranslation('subject2_label');
+    document.getElementById('chat-heading').textContent = getTranslation('chat_heading');
+    document.getElementById('chat-input').placeholder = getTranslation('chat_input_placeholder');
+    document.getElementById('chat-send-button').textContent = getTranslation('chat_send_button');
+    document.getElementById('comparison-heading').textContent = getTranslation('comparison_heading');
+    document.getElementById('compare-button').textContent = getTranslation('compare_button_text');
+    document.getElementById('reset-filters-button').textContent = getTranslation('filter_clear_button');
+    voiceButton.textContent = getTranslation('voice_button_start'); // Обновление кнопки голоса
+
+    // Обновление динамических элементов
+    updateFilterOptions();
+    filterUniversities(); // Перерисовка списка ВУЗов
+    updateComparisonArea();
+    
+    // Обновление первого сообщения в чате
+    initializeChat(false); 
 }
 
-// --- Инициализация при загрузке ---
-window.onload = () => {
-
-    const cities = [...new Set(universityData.map(u => u.city))];
+/**
+ * Обновляет опции в выпадающих списках (города, предметы).
+ */
+function updateFilterOptions() {
+    // 1. Обновление фильтра городов
     const cityFilter = document.getElementById('city-filter');
+    const selectedCity = cityFilter.value;
+    const cities = [...new Set(universityData.map(u => u.city))].sort();
 
-    cityFilter.innerHTML = ''; 
-    
-    const defaultOption = document.createElement('option');
+    cityFilter.innerHTML = '';
+    let defaultOption = document.createElement('option');
     defaultOption.value = "";
-    defaultOption.textContent = "(Все города)";
+    defaultOption.textContent = getTranslation('default_option_all_cities');
     cityFilter.appendChild(defaultOption);
 
-    cities.sort().forEach(city => {
+    cities.forEach(city => {
         const option = document.createElement('option');
         option.value = city;
         option.textContent = city;
         cityFilter.appendChild(option);
     });
+    cityFilter.value = selectedCity;
 
-    displayUniversities(universityData);
+    // 2. Обновление опций предметов
+    const subjectFilters = ['subject1', 'subject2'];
+    const allSubjects = ['Математика', 'Физика', 'Информатика', 'Биология', 'Химия', 'История мира', 'География', 'Иностранный язык']; 
+
+    subjectFilters.forEach(id => {
+        const filterElement = document.getElementById(id);
+        const selectedSubject = filterElement.value;
+        filterElement.innerHTML = '';
+
+        let defaultSubjectOption = document.createElement('option');
+        defaultSubjectOption.value = "";
+        defaultSubjectOption.textContent = getTranslation('default_option_select_subject');
+        filterElement.appendChild(defaultSubjectOption);
+
+        allSubjects.sort().forEach(subject => {
+            const option = document.createElement('option');
+            option.value = subject;
+            option.textContent = subject;
+            filterElement.appendChild(option);
+        });
+        filterElement.value = selectedSubject;
+    });
+}
+
+/**
+ * Фильтрует университеты по выбранным критериям.
+ */
+function filterUniversities() {
+    const city = document.getElementById('city-filter').value;
+    const subject1 = document.getElementById('subject1').value;
+    const subject2 = document.getElementById('subject2').value;
+
+    const filtered = universityData.filter(uni => {
+        // Фильтр по городу
+        if (city && uni.city !== city) {
+            return false;
+        }
+
+        // Фильтр по предметам
+        if (subject1 || subject2) {
+            // Проверяем, есть ли хоть одна программа, подходящая по обоим предметам
+            return uni.sections.programs.list.some(program => {
+                const required = program.subjects_required;
+                const matchesSubject1 = !subject1 || required.includes(subject1);
+                const matchesSubject2 = !subject2 || required.includes(subject2);
+                
+                // Проверка на уникальность: предметы должны быть разными, если оба выбраны
+                if (subject1 && subject2 && subject1 === subject2) {
+                    return required.includes(subject1); // Достаточно, чтобы один предмет был в списке
+                }
+                
+                // Проверка, что оба выбранных (разных) предмета есть в required
+                if (subject1 && subject2) {
+                    return required.includes(subject1) && required.includes(subject2);
+                }
+                
+                // Если выбран только один предмет
+                return matchesSubject1 && matchesSubject2;
+            });
+        }
+        
+        return true;
+    });
+
+    displayUniversities(filtered);
+}
+
+/**
+ * Отображает список университетов в контейнере.
+ */
+function displayUniversities(universities) {
+    const container = document.getElementById('university-list-container');
+    container.innerHTML = '';
+
+    if (universities.length === 0) {
+        container.innerHTML = `<p>${getTranslation('no_universities_found')}</p>`;
+        return;
+    }
+
+    universities.forEach(uni => {
+        const card = document.createElement('div');
+        card.classList.add('university-card');
+        
+        const isCompared = comparedUniversities.includes(uni.id);
+
+        card.innerHTML = `
+            <img src="${uni.image_url}" alt="${uni.name}" class="card-image">
+            <div class="card-content">
+                <h3>${uni.name}</h3>
+                <p><strong>${getTranslation('city_filter_label')}</strong> ${uni.city}</p>
+            </div>
+            <div class="card-actions">
+                <button onclick="showUniversityDetails('${uni.id}')">${getTranslation('detail_button')}</button>
+                <button class="${isCompared ? 'remove-compare' : 'add-compare'}" 
+                        onclick="toggleComparison('${uni.id}')">
+                    ${isCompared ? getTranslation('compare_remove_button') : getTranslation('compare_add_button')}
+                </button>
+            </div>
+        `;
+        container.appendChild(card);
+    });
+}
+
+/**
+ * Сбрасывает все фильтры.
+ */
+function resetFilters() {
+    document.getElementById('city-filter').value = '';
+    document.getElementById('subject1').value = '';
+    document.getElementById('subject2').value = '';
+    filterUniversities();
+}
+
+// =================================================================
+// ЧАСТЬ 3: МОДАЛЬНЫЕ ОКНА И СРАВНЕНИЕ
+// =================================================================
+
+/**
+ * Показывает детали университета в модальном окне.
+ */
+function showUniversityDetails(id) {
+    const uni = universityData.find(u => u.id === id);
+    if (!uni) return;
+
+    const body = document.getElementById('modal-details-body');
+    let html = `<div class="university-details"><h2>${uni.name} - ${uni.city}</h2>`;
+
+    for (const key in uni.sections) {
+        const section = uni.sections[key];
+        html += `<div class="details-section"><h3>${section.title}</h3>`;
+        
+        if (section.mission) html += `<p><strong>${getTranslation('table_header_mission')}:</strong> ${section.mission}</p>`;
+        if (section.history_excerpt) html += `<p>${section.history_excerpt}</p>`;
+        if (section.achievements) {
+            html += '<h4>Достижения:</h4><ul>';
+            section.achievements.forEach(ach => html += `<li>${ach}</li>`);
+            html += '</ul>';
+        }
+        
+        if (section.list) {
+            html += '<h4>Программы:</h4><ul>';
+            section.list.forEach(prog => {
+                html += `<li>${prog.program_name} (Профильные: ${prog.subjects_required.join(', ')})</li>`;
+            });
+            html += '</ul>';
+        }
+        
+        if (section.requirements) html += `<p><strong>${getTranslation('table_header_requirements')}:</strong> ${section.requirements}</p>`;
+        if (section.scholarships) html += `<p><strong>Гранты:</strong> ${section.scholarships}</p>`;
+        if (section.exchange_programs) html += `<p><strong>Обмен:</strong> ${section.exchange_programs}</p>`;
+
+        if (section.link) {
+            html += `<div style="text-align:center; margin-top: 15px;">
+                        <iframe width="100%" height="315" src="${section.link}" frameborder="0" allowfullscreen></iframe>
+                    </div>`;
+        }
+
+        html += '</div>';
+    }
+
+    body.innerHTML = html + '</div>';
+    document.getElementById('modal-details').style.display = 'block';
+}
+
+/**
+ * Добавляет/удаляет ВУЗ из списка сравнения.
+ */
+function toggleComparison(id) {
+    const index = comparedUniversities.indexOf(id);
+    if (index > -1) {
+        comparedUniversities.splice(index, 1);
+    } else if (comparedUniversities.length < 5) { // Ограничение на 5 ВУЗов
+        comparedUniversities.push(id);
+    } else {
+        alert(currentLang === 'ru' ? "Максимум 5 ВУЗов для сравнения." : "Салыстыру үшін ең көп дегенде 5 ЖОО.");
+    }
+    updateComparisonArea();
+    filterUniversities(); // Обновить кнопки на карточках
+}
+
+/**
+ * Обновляет список ВУЗов в боковой панели.
+ */
+function updateComparisonArea() {
+    const list = document.getElementById('comparison-list');
+    const compareButton = document.getElementById('compare-button');
+    list.innerHTML = '';
+
+    const comparedObjects = comparedUniversities.map(id => universityData.find(u => u.id === id)).filter(u => u);
+
+    comparedObjects.forEach(uni => {
+        const item = document.createElement('div');
+        item.classList.add('comparison-item-box');
+        item.innerHTML = `
+            <span>${uni.name}</span>
+            <button onclick="toggleComparison('${uni.id}')">X</button>
+        `;
+        list.appendChild(item);
+    });
+    
+    // Включаем кнопку "Сравнить", если выбрано 2 или больше
+    compareButton.disabled = comparedUniversities.length < 2;
+    compareButton.textContent = `${getTranslation('compare_button_text')} (${comparedUniversities.length})`;
+}
+
+/**
+ * Показывает модальное окно с таблицей сравнения.
+ */
+function showComparisonModal() {
+    const body = document.getElementById('modal-comparison-body');
+    const unis = comparedUniversities.map(id => universityData.find(u => u.id === id)).filter(u => u);
+
+    let html = `<h2>${getTranslation('comparison_modal_title')}</h2>`;
+    html += '<table class="comparison-table"><thead><tr>';
+    
+    // Заголовки таблицы
+    html += `<th>${getTranslation('table_header_name')}</th>`;
+    unis.forEach(uni => html += `<th>${uni.name}</th>`);
+    html += '</tr></thead><tbody>';
+
+    // Строка: Город
+    html += `<tr><td><strong>${getTranslation('table_header_city')}</strong></td>`;
+    unis.forEach(uni => html += `<td>${uni.city}</td>`);
+    html += '</tr>';
+    
+    // Строка: Миссия
+    html += `<tr><td><strong>${getTranslation('table_header_mission')}</strong></td>`;
+    unis.forEach(uni => html += `<td>${uni.sections.mission_history.mission || '-'}</td>`);
+    html += '</tr>';
+
+    // Строка: Программы (примеры)
+    html += `<tr><td><strong>${getTranslation('table_header_programs')}</strong></td>`;
+    unis.forEach(uni => {
+        const programs = uni.sections.programs.list.map(p => p.program_name).slice(0, 3).join(', ');
+        html += `<td>${programs}</td>`;
+    });
+    html += '</tr>';
+
+    // Строка: Требования
+    html += `<tr><td><strong>${getTranslation('table_header_requirements')}</strong></td>`;
+    unis.forEach(uni => html += `<td>${uni.sections.admission.requirements || '-'}</td>`);
+    html += '</tr>';
+    
+    // Строка: Достижения
+    html += `<tr><td><strong>Достижения</strong></td>`;
+    unis.forEach(uni => {
+        const achievements = uni.sections.mission_history.achievements.join('; ');
+        html += `<td>${achievements || '-'}</td>`;
+    });
+    html += '</tr>';
+
+
+    html += '</tbody></table>';
+    body.innerHTML = html;
+    document.getElementById('modal-comparison').style.display = 'block';
+}
+
+/**
+ * Закрывает модальное окно по ID.
+ */
+function closeModal(id) {
+    document.getElementById(id).style.display = 'none';
+}
+
+
+// =================================================================
+// ЧАСТЬ 4: ЛОГИКА ЧАТ-БОТА И ГОЛОСОВОГО ПОМОЩНИКА
+// =================================================================
+
+const chatContainer = document.getElementById('chat-messages');
+const chatInput = document.getElementById('chat-input');
+const chatSendButton = document.getElementById('chat-send-button');
+const voiceButton = document.getElementById('voice-toggle');
+
+let mediaRecorder;
+let audioChunks = [];
+let isRecording = false;
+
+/**
+ * Инициализирует чат первым сообщением.
+ */
+function initializeChat(clear = true) {
+    if (clear) chatContainer.innerHTML = '';
+    
+    const initialMessageRU = "Привет! Я AI-Консультант. Я помогу вам найти информацию о поступлении в ВУЗы Казахстана, грантах и предметах ЕНТ. Чем могу помочь?";
+    const initialMessageKZ = "Сәлеметсіз бе! Мен AI-Кеңесшімін. Мен сізге Қазақстанның жоғары оқу орындарына түсу, гранттар және ҰБТ пәндері туралы ақпаратты табуға көмектесемін. Не көмек керек?";
+    
+    const welcomeMessage = currentLang === 'ru' ? initialMessageRU : initialMessageKZ;
+    displayMessage(welcomeMessage, 'ai');
+}
+
+/**
+ * Отображает сообщение в чате.
+ */
+function displayMessage(message, sender, audioBlob = null) {
+    const messageDiv = document.createElement('div');
+    messageDiv.classList.add('chat-message', sender);
+
+    if (audioBlob) {
+        // Если это голосовое сообщение, создаем аудио-плеер
+        const audioUrl = URL.createObjectURL(audioBlob);
+        const audioElement = document.createElement('audio');
+        audioElement.controls = true;
+        audioElement.src = audioUrl;
+        
+        const textP = document.createElement('p');
+        textP.textContent = message; 
+        
+        messageDiv.appendChild(textP);
+        messageDiv.appendChild(audioElement);
+    } else {
+        // Если это обычный текст
+        messageDiv.textContent = message;
+    }
+    
+    chatContainer.appendChild(messageDiv);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+}
+
+/**
+ * Отправляет сообщение пользователя и вызывает ответ AI.
+ */
+function sendMessage() {
+    const query = chatInput.value.trim();
+    if (!query) return;
+
+    displayMessage(query, 'user');
+    chatInput.value = '';
+
+    // Имитация ответа AI
+    handleChatQuery(query);
+}
+
+/**
+ * Генерирует симулированный ответ AI на запрос.
+ */
+function handleChatQuery(query) {
+    const lowerQuery = query.toLowerCase();
+    let response = '';
+
+    // Логика для симуляции ответа на голосовое сообщение
+    if (query === '__VOICE_MESSAGE_SENT__') {
+        response = getTranslation('ai_response_voice_ru');
+        setTimeout(() => {
+            displayMessage(response, 'ai');
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }, 500);
+        return;
+    }
+
+    if (lowerQuery.includes('привет') || lowerQuery.includes('здравствуй')) {
+        response = currentLang === 'ru' ? "Здравствуйте! Я готов помочь вам с выбором университета. Укажите ваши профильные предметы ЕНТ или город." : "Сәлеметсіз бе! Мен сізге университет таңдауға көмектесуге дайынмын. ҰБТ бейіндік пәндеріңізді немесе қалаңызды көрсетіңіз.";
+    } else if (lowerQuery.includes('грант') || lowerQuery.includes('сколько стоит')) {
+        response = currentLang === 'ru' ? "Информация о грантах и стоимости обучения индивидуальна для каждого ВУЗа и программы. Пожалуйста, посмотрите раздел 'Прием и Поступление' в деталях конкретного университета." : "Гранттар және оқу құны туралы ақпарат әр ЖОО мен бағдарлама үшін жеке болып табылады. Нақты университеттің мәліметтеріндегі 'Қабылдау және Түсу' бөлімін қараңыз.";
+    } else if (lowerQuery.includes('ент') || lowerQuery.includes('максимальный балл')) {
+        response = currentLang === 'ru' ? "Для поступления вам нужно набрать минимальный проходной балл, который варьируется от 60 до 75 для разных направлений. Проверьте требования в секции 'Прием' выбранного университета." : "Түсу үшін сіз әртүрлі бағыттар бойынша 60-тан 75-ке дейін өзгеретін минималды өтпелі балл жинауыңыз керек. Таңдалған университеттің 'Қабылдау' бөліміндегі талаптарды тексеріңіз.";
+    } else if (lowerQuery.includes('алматы') || lowerQuery.includes('астана') || lowerQuery.includes('караганда')) {
+        response = currentLang === 'ru' ? `В городе ${query} находятся такие крупные ВУЗы, как КазНУ, КазНМУ, IITU и другие. Используйте фильтр 'Город' для просмотра полного списка.` : `${query} қаласында ҚазҰУ, ҚазҰМУ, IITU және тағы басқа ірі ЖОО-лар орналасқан. Толық тізімді көру үшін 'Қала' сүзгісін қолданыңыз.`;
+    } else if (lowerQuery.includes('спасибо') || lowerQuery.includes('благодарю')) {
+        response = currentLang === 'ru' ? "Рад был помочь! Не стесняйтесь задавать другие вопросы." : "Көмектескеніме қуаныштымын! Басқа сұрақтарыңыз болса, қоя беріңіз.";
+    } else {
+        response = currentLang === 'ru' ? "Извините, я могу отвечать только на общие вопросы о поступлении, грантах, ЕНТ и расположении ВУЗов. Пожалуйста, сформулируйте свой вопрос точнее." : "Кешіріңіз, мен тек түсу, гранттар, ҰБТ және ЖОО орналасқан жері туралы жалпы сұрақтарға жауап бере аламын. Өтінемін, сұрағыңызды нақтылаңыз.";
+    }
+
+    setTimeout(() => {
+        displayMessage(response, 'ai');
+    }, 500);
+}
+
+/**
+ * Включает/выключает запись голоса.
+ */
+function toggleRecording() {
+    if (!isRecording) {
+        startRecording();
+    } else {
+        stopRecording();
+    }
+}
+
+async function startRecording() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert(currentLang === 'ru' ? "Извините, запись голоса не поддерживается вашим браузером." : "Кешіріңіз, дауысты жазу сіздің браузеріңізде қолдау таппайды.");
+        return;
+    }
+
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+        
+        mediaRecorder.ondataavailable = event => {
+            audioChunks.push(event.data);
+        };
+        
+        mediaRecorder.onstop = () => {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+            
+            const voiceMessageText = getTranslation('send_voice_message_ui');
+            displayMessage(voiceMessageText, 'user', audioBlob); 
+            
+            handleChatQuery('__VOICE_MESSAGE_SENT__'); 
+
+            stream.getTracks().forEach(track => track.stop());
+        };
+
+        mediaRecorder.start();
+        isRecording = true;
+        
+        voiceButton.textContent = getTranslation('voice_button_stop');
+        voiceButton.classList.add('recording');
+        chatInput.disabled = true;
+        chatSendButton.disabled = true;
+
+    } catch (err) {
+        console.error("Ошибка доступа к микрофону:", err);
+        alert(currentLang === 'ru' ? "Не удалось получить доступ к микрофону. Проверьте разрешения." : "Микрофонға кіру мүмкін болмады. Рұқсаттарды тексеріңіз.");
+    }
+}
+
+function stopRecording() {
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+    }
+    isRecording = false;
+    
+    voiceButton.textContent = getTranslation('voice_button_start');
+    voiceButton.classList.remove('recording');
+    chatInput.disabled = false;
+    chatSendButton.disabled = false;
+}
+
+// =================================================================
+// ЧАСТЬ 5: ИНИЦИАЛИЗАЦИЯ
+// =================================================================
+
+window.onload = () => {
+    // Инициализация фильтров
+    updateFilterOptions();
+    
+    // Инициализация языка и UI
+    toggleLanguage(); // Вызываем один раз для установки начальных переводов и UI
+    
+    // Привязка обработчиков событий
     document.getElementById('city-filter').onchange = filterUniversities;
     document.getElementById('subject1').onchange = filterUniversities;
     document.getElementById('subject2').onchange = filterUniversities;
-};
+    chatInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            sendMessage();
+        }
+    });
 
-
-// =================================================================
-// ЧАСТЬ 3: ЛОГИКА ЧАТ-БОТА NURUM (Психологический Консультант)
-// =================================================================
-const chatBody = document.querySelector('#nurym-chat-modal .chat-body');
-const chatInput = document.getElementById('chat-input-field'); 
-const chatSendBtn = document.getElementById('send-btn');
-const chatMicBtn = document.getElementById('mic-btn'); 
-const chatSoundBtn = document.getElementById('sound-btn'); 
-const chatModal = document.getElementById('nurym-chat-modal');
-const chatOpenBtn = document.getElementById('nurym-chat-btn');
-const chatCloseBtn = document.querySelector('.close-chat');
-
-// --- Функции для управления чатом ---
-chatOpenBtn.onclick = () => {
-    chatModal.style.display = 'flex';
-    if (chatBody.children.length === 0) {
-        addNurymMessage("🤖 Здравствуйте! Я — Nurym AI, и я здесь, чтобы стать вашим **надежным проводником и консультантом** в поиске идеального пути. Поделитесь своими мыслями: что вас тревожит или вдохновляет в выборе университета?");
-    }
-};
-
-chatCloseBtn.onclick = () => {
-    chatModal.style.display = 'none';
-};
-
-function addMessage(text, sender) {
-    const msg = document.createElement('div');
-    msg.classList.add('message', sender);
-    msg.innerHTML = text.replace(/\n/g, '<br>'); 
-    chatBody.appendChild(msg);
-    chatBody.scrollTop = chatBody.scrollHeight;
-}
-
-function addUserMessage(text) {
-    addMessage(text, 'user');
-}
-
-function addNurymMessage(text) {
-    addMessage(text, 'nurym');
-}
-
-chatSendBtn.onclick = () => processUserMessage();
-chatInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-        processUserMessage();
-    }
-});
-
-// --- Логика голосовых кнопок (Плейсхолдеры) ---
-chatMicBtn.onclick = () => {
-    alert("🎙️ Внимание: Функция голосового ввода (Speech Recognition API) требует интеграции с реальным бэкендом. Сейчас она неактивна.");
-    // ЗДЕСЬ ДОЛЖНА БЫТЬ ЛОГИКА ЗАПУСКА SpeechRecognition API
-};
-
-chatSoundBtn.onclick = () => {
-    alert("🔊 Внимание: Функция синтеза речи (Text-to-Speech API) требует интеграции с реальным бэкендом. Сейчас она неактивна.");
-    // ЗДЕСЬ ДОЛЖНА БЫТЬ ЛОГИКА ЗАПУСКА SpeechSynthesis API
-};
-
-
-/**
- * Главная логика обработки сообщения пользователя.
- * Имитирует эмпатичное общение в стиле психолога-консультанта.
- */
-function processUserMessage() {
-    const text = chatInput.value.trim();
-    if (!text) return;
-
-    addUserMessage(text);
-    chatInput.value = '';
-
-    const userQuery = text.toLowerCase();
-    let nurymResponse = "Спасибо, что поделились этой мыслью. Я здесь, чтобы поддержать вас и помочь найти ясность. Расскажите, что именно вызывает у вас больше всего сомнений в этом вопросе?";
-
-    // 1. Поиск ВУЗа по названию (Эмпатичное предоставление данных)
-    const foundUni = universityData.find(uni => 
-        userQuery.includes(uni.name.toLowerCase()) || 
-        userQuery.includes(uni.id.toLowerCase()) ||
-        userQuery.includes(uni.city.toLowerCase()) && (userQuery.includes('университет') || userQuery.includes('вуз'))
-    );
-
-    if (foundUni) {
-        nurymResponse = `**${foundUni.name}** в **${foundUni.city}** — это прекрасный выбор. Я чувствую, что это может быть важным шагом для вас. \n\n` + 
-                        `**Мои наблюдения (факты):**\n` +
-                        `**📚 Требования:** Чтобы поступить сюда, вам понадобятся высокие баллы ЕНТ, особенно по профильным предметам, например, для IT: **${foundUni.sections.programs.list[0].subjects_required.join(' и ')}**.\n` + 
-                        `**⭐ Направление:** ${foundUni.sections.mission_history.mission}\n\n` + 
-                        `**Важно:** Пожалуйста, нажмите на карточку ${foundUni.name} в каталоге, чтобы глубоко проанализировать все детали программ и условий. Каковы ваши **чувства** по поводу этих требований? Мы можем поискать альтернативы.`;
-
-    } 
-    // 2. Общие вопросы о ЕНТ и страхи (Поддержка и перенаправление)
-    else if (userQuery.includes('страшно') || userQuery.includes('не знаю') || userQuery.includes('переживаю') || userQuery.includes('ент') && userQuery.includes('сложно')) {
-        nurymResponse = "Я слышу вашу **тревогу**, и это абсолютно нормально. Выбор пути — это серьезный процесс, и он требует мужества. Помните, что ваше образование должно отражать ваши **истинные интересы**, а не только требования. \n\n" +
-                        "**Предлагаю два шага:**\n" +
-                        "1. Начните с **Опроса** (блок Nurym AI), чтобы понять свои склонности.\n" +
-                        "2. Используйте **Фильтры** с предметами, которые вы **любите**, чтобы увидеть, какие ВУЗы предлагают эти направления.";
-    } 
-    // 3. Вопросы о грантах (Практичное, но мягкое руководство)
-    else if (userQuery.includes('грант') || userQuery.includes('стипендия') || userQuery.includes('финансы')) {
-        nurymResponse = "Вопросы **финансирования** — это очень практичная и важная часть процесса, и о них нужно думать заранее. Вы молодец, что подняли эту тему.\n\n" +
-                        "**Мое руководство:** Шансы на грант зависят от вашего балла ЕНТ и выбора специальности. Чем выше балл и уже специальность (например, техническая), тем выше вероятность. Если вы уже выбрали университет, скажите его название, и мы посмотрим, какие стипендии он предлагает. ";
-    }
-    // 4. Приветствия и общие фразы
-    else if (userQuery.includes('привет') || userQuery.includes('здравствуй') || userQuery.includes('ты кто') || userQuery.includes('помоги')) {
-        nurymResponse = "Здравствуйте! Я — Nurym AI, и я здесь, чтобы быть вашим **надежным проводником и консультантом** в поиске идеального университета в Казахстане. Я не даю приказов, я помогаю вам найти **ваш собственный путь**.\n\n" +
-                        "С чего начнем? С ваших **мечтаний** или с **практических шагов** (например, ЕНТ)?";
-    }
+    // Инициализация чата (уже вызывается внутри toggleLanguage(true) или initializeChat())
+    initializeChat(true);
     
-    // Имитация задержки ответа AI
-    setTimeout(() => {
-        addNurymMessage(nurymResponse);
-    }, 1200);
-}
+    // Первый показ списка университетов
+    displayUniversities(universityData);
+};
