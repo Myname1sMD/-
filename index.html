@@ -3,29 +3,137 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>University Explorer KZ</title>
+    <title>Платформа Выбора ВУЗов | Nurym AI</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏛️</text></svg>">
 </head>
 <body>
 
     <header>
-        <h1>🎓 Университеты Казахстана</h1>
+        <div class="header-content">
+            <h1 data-translate="header.title">🏛️ Выбери свой университет!</h1>
+            <div class="language-selector">
+                <button onclick="changeLanguage('ru')" id="lang-ru" class="lang-btn active">РУ</button>
+                <button onclick="changeLanguage('kk')" id="lang-kk" class="lang-btn">ҚАЗ</button>
+                <button onclick="changeLanguage('en')" id="lang-en" class="lang-btn">EN</button>
+            </div>
+        </div>
     </header>
 
     <main>
-        <div id="universityList" class="university-grid">
+        <section id="nurym-assistant">
+            <h2 data-translate="nurym.title">🤖 Nurym: Твой AI-консультант</h2>
+            <div id="quiz-container">
+                <p data-translate="nurym.description">Начните опрос, чтобы получить рекомендацию профессии и ВУЗа.</p>
+                <button onclick="startQuiz()" data-translate="nurym.startQuiz">Начать опрос</button>
             </div>
+            <div id="quiz-results" style="display:none;"></div>
+        </section>
+
+        <hr>
+
+        <section id="university-list-section">
+            <h2 data-translate="catalog.title">🎓 Каталог Университетов</h2>
+            <div class="filters">
+                <label for="city-filter" data-translate="filters.city">Город:</label>
+                <select id="city-filter">
+                    <option value="" data-translate="filters.allCities">(Все города)</option>
+                    <option value="Алматы">Алматы</option>
+                    <option value="Нур-Султан (Астана)">Астана (Нур-Султан)</option>
+                    <option value="Караганда">Караганда</option>
+                </select>
+                
+                <label for="subject1" data-translate="filters.subject1">Предмет 1 (ЕНТ):</label>
+                <select id="subject1">
+                    <option value="" data-translate="filters.notSelected">(Не выбрано)</option>
+                    <option value="Математика" data-translate="subjects.math">Математика</option>
+                    <option value="Физика" data-translate="subjects.physics">Физика</option>
+                    <option value="Биология" data-translate="subjects.biology">Биология</option>
+                    <option value="История мира" data-translate="subjects.history">История мира</option>
+                    <option value="География" data-translate="subjects.geography">География</option>
+                </select>
+
+                <label for="subject2" data-translate="filters.subject2">Предмет 2 (ЕНТ):</label>
+                <select id="subject2">
+                    <option value="" data-translate="filters.notSelected">(Не выбрано)</option>
+                    <option value="Физика" data-translate="subjects.physics">Физика</option>
+                    <option value="Информатика" data-translate="subjects.informatics">Информатика</option>
+                    <option value="Химия" data-translate="subjects.chemistry">Химия</option>
+                    <option value="Иностранный язык" data-translate="subjects.foreignLang">Иностранный язык</option>
+                    <option value="География" data-translate="subjects.geography">География</option>
+                </select>
+
+                <button onclick="filterUniversities()" data-translate="filters.apply">Применить фильтр</button>
+            </div>
+            
+            <div id="university-list">
+                </div>
+        </section>
+
+        <hr>
+
+        <section id="comparison-section" style="display:none;">
+            <h2 data-translate="comparison.title">📊 Сравнение ВУЗов</h2>
+            <div id="comparison-table">
+                </div>
+        </section>
+
     </main>
 
-    <div id="modal" class="modal">
+    <div id="details-modal" class="modal">
         <div class="modal-content">
-            <span class="close" onclick="closeModal()">&times;</span>
-            <div id="modalBody">
+            <span class="close-button" onclick="closeModal()">&times;</span>
+            <div id="modal-body">
+                <h2>[Название ВУЗа]</h2>
+                
+                <div class="uni-sections">
+                    <div id="uni-mission"></div>
+                    <div id="uni-programs"></div>
+                    <div id="uni-admission"></div>
+                    <div id="uni-international"></div>
+                    <div id="uni-tour-section">
+                        <h4>🗺️ 3D-Тур / Видео-обзор кампуса</h4>
+                        <iframe id="uni-tour-iframe" width="100%" height="400" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+                    </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Nurym Ассистент-Психолог (Чат) -->
+    <button id="ai-assistant-btn" onclick="toggleAIChat()" title="Открыть Nurym">
+        Nurym
+    </button>
+
+    <div id="ai-chat-modal" class="chat-modal" style="display:none;">
+        <div class="chat-header">
+            <div class="chat-header-content">
+                <h4 data-translate="chat.title">🤖 Nurym: Ваш персональный помощник</h4>
+                <p class="chat-subtitle" data-translate="chat.subtitle">Помогу с выбором профессии, университета и документами</p>
+            </div>
+            <span class="close-chat" onclick="toggleAIChat()">&times;</span>
+        </div>
+        <div class="chat-body" id="ai-chat-messages">
+            <div class="message ai-message" id="chat-welcome-message">
+                <div class="message-avatar">🤖</div>
+                <div class="message-content">
+                    <strong>Nurym:</strong> <span id="chat-welcome-text">Привет! Я твой персональный помощник и психолог. Я могу помочь тебе:</span>
+                    <ul style="margin: 10px 0; padding-left: 20px;" id="chat-welcome-list">
+                        <li>🎓 Выбрать профессию и университет</li>
+                        <li>📄 Подготовить документы для поступления</li>
+                        <li>💪 Поддержать морально и мотивировать</li>
+                        <li>❓ Ответить на любые вопросы о поступлении</li>
+                    </ul>
+                    <p style="margin-top: 10px;" id="chat-welcome-example">Просто напиши мне, что тебя интересует! Например: "Помоги выбрать профессию", "Какие документы нужны?", "Я боюсь не поступить"</p>
+                </div>
+            </div>
+        </div>
+        <div class="chat-footer">
+            <input type="text" id="ai-user-input" data-translate="chat.placeholder" placeholder="Напишите ваш вопрос или проблему..." onkeydown="if(event.key === 'Enter') sendAIMessage()">
+            <button onclick="sendAIMessage()" data-translate="buttons.send">Отправить</button>
         </div>
     </div>
 
     <script src="script.js"></script>
-
 </body>
 </html>
